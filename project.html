@@ -1,0 +1,907 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Decision Desk</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 0;
+      background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1470&q=80') center center/cover no-repeat;
+      min-height: 100vh;
+      color: #444444;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(30, 41, 59, 0.75);
+      z-index: -1;
+      pointer-events: none;
+    }
+    header {
+      width: 100%;
+      background: linear-gradient(90deg, #2563eb, #3b82f6);
+      color: #eef2ff;
+      font-weight: 700;
+      font-size: 2.8rem;
+      padding: 1.8rem 0;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.6);
+      text-align: center;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+      position: relative;
+      z-index: 1;
+      user-select: none;
+    }
+    main {
+      flex-grow: 1;
+      width: 100%;
+      max-width: 480px;
+      padding: 3rem 2.5rem 4rem;
+      margin: 3rem auto 4rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      color: #eef2ff;
+      position: relative;
+      z-index: 1;
+      animation: fadeInUp 1s ease forwards;
+      display: flex;
+      flex-direction: column;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #a3c4f3;
+      color: #1a1a1a;
+      padding: 14px 30px;
+      margin: 12px 10px 0 0;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 3px 8px rgba(163, 196, 243, 0.6);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+      user-select: none;
+      text-align: center;
+    }
+    .btn:hover:not(:disabled) {
+      background-color: #7fa8e3;
+      box-shadow: 0 5px 15px rgba(127, 168, 227, 0.8);
+      transform: translateY(-2px);
+    }
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(127, 168, 227, 0.7);
+    }
+    .btn:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: none;
+      color: #888888;
+    }
+    .logout-btn {
+      background-color: #e0e0e0;
+      color: #555555;
+      box-shadow: none;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      float: right;
+      margin-bottom: 1rem;
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    .logout-btn:hover {
+      background-color: #c7c7c7;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      color: #eef2ff;
+      text-shadow: 0 0 10px #93c5fd;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 16px 22px;
+      margin: 0 0 1.8rem;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.2rem;
+      background: rgba(255, 255, 255, 0.15);
+      color: #eef2ff;
+      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.3);
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      font-family: inherit;
+      backdrop-filter: blur(6px);
+      resize: vertical;
+    }
+    input::placeholder, select::placeholder {
+      color: #cbd5e1;
+      opacity: 0.9;
+    }
+    input:focus, select:focus, textarea:focus {
+      background-color: rgba(255, 255, 255, 0.35);
+      outline: none;
+      box-shadow: 0 0 15px 4px #60a5fa;
+      color: #1e293b;
+      font-weight: 600;
+    }
+    #groupsArea, #membersArea {
+      background-color: #f0f0f0;
+      border-radius: 16px;
+      padding: 1rem 1.5rem;
+      margin-top: 1rem;
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: inset 0 0 8px #cccccc;
+      color: #555555;
+    }
+    #groupsArea div {
+      padding: 8px 12px;
+      cursor: default;
+      border-radius: 10px;
+      margin-bottom: 5px;
+      background-color: #d9e4f5;
+      color: #2a2a2a;
+      transition: background-color 0.3s ease;
+    }
+    #groupsArea div:hover {
+      background-color: #a3c4f3;
+      color: #1a1a1a;
+    }
+    /* Additional styling for member club assignment */
+    #membersArea div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      margin-bottom: 5px;
+      background-color: #e7eafc;
+      border-radius: 10px;
+    }
+    #membersArea select {
+      width: auto;
+      padding: 6px 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #a3c4f3;
+      background-color: #ffffff;
+      cursor: pointer;
+    }
+    /* Admin polls container */
+    #adminPollsList {
+      margin-top: 1.5rem;
+      color: #444;
+      background: #f0f4ff;
+      padding: 1rem;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(100, 116, 139, 0.15);
+    }
+    .admin-poll {
+      background: #f0f4ff;
+      border-radius: 16px;
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(100, 116, 139, 0.15);
+      color: #1e40af;
+    }
+    .admin-poll h3 {
+      margin: 0 0 0.8rem 0;
+      font-weight: 700;
+      color: #1e40af;
+    }
+    .poll-description {
+      font-size: 1rem;
+      color: #475569;
+      margin-bottom: 1rem;
+      white-space: pre-wrap;
+    }
+    .votes-count {
+      font-size: 0.9rem;
+      color: #475569;
+      margin-bottom: 1rem;
+    }
+    canvas {
+      max-width: 100%;
+      margin: auto;
+      display: block;
+    }
+    /* Member poll container */
+    #memberPollsContainer {
+      margin-top: 1rem;
+      color: #1e40af;
+    }
+    .member-poll {
+      background-color: #e0e7ff;
+      border-radius: 16px;
+      padding: 1.5rem 1.5rem;
+      margin-bottom: 1.8rem;
+      box-shadow: 0 3px 10px rgba(100, 116, 139, 0.2);
+      color: #1e40af;
+    }
+    .member-poll h3 {
+      margin: 0 0 0.5rem 0;
+      color: #1e40af;
+      font-weight: 700;
+      font-size: 1.5rem;
+    }
+    .member-poll-description {
+      font-size: 1rem;
+      color: #475569;
+      margin-bottom: 1rem;
+      white-space: pre-wrap;
+    }
+    .member-poll-options button {
+      margin: 6px 8px 6px 0;
+      padding: 12px 24px;
+      font-size: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(163, 196, 243, 0.5);
+      background-color: #a3c4f3;
+      color: #1a1a1a;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .member-poll-options button:hover:not(:disabled) {
+      background-color: #7fa8e3;
+    }
+    .member-poll-options button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      color: #666666;
+      box-shadow: none;
+    }
+    .voted-message {
+      font-style: italic;
+      color: #374151;
+      margin-top: 0.5rem;
+    }
+    /* Pending admin approvals */
+    #pendingAdminsList {
+      background: #fff4f4;
+      border: 1.5px solid #f87171;
+      padding: 1rem 1.5rem;
+      border-radius: 16px;
+      margin-top: 2rem;
+      max-height: 240px;
+      overflow-y: auto;
+      box-shadow: 0 2px 8px rgba(248, 113, 113, 0.3);
+      color: #991b1b;
+    }
+    #pendingAdminsList h3 {
+      margin-top: 0;
+      color: #b91c1c;
+      font-weight: 700;
+      text-align: center;
+    }
+    .pending-admin-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      background: #fee2e2;
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .pending-admin-item button {
+      background-color: #ef4444;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background-color 0.3s ease;
+    }
+    .pending-admin-item button:hover {
+      background-color: #b91c1c;
+    }
+
+    /* ----------- Login Section Styles ----------- */
+    #loginSection {
+      display: none;
+      flex-direction: column;
+    }
+    #loginSection h2 {
+      margin-bottom: 2rem;
+    }
+    #loginError {
+      color: #f87171;
+      font-weight: 600;
+      text-align: center;
+      margin-top: 0.5rem;
+      min-height: 1.3rem;
+    }
+    #loginSection p {
+      text-align: center;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-top: 1.5rem;
+      color: #a5b4fc;
+    }
+    #loginSection p span {
+      color: #60a5fa;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.3s ease;
+      user-select: none;
+    }
+    #loginSection p span:hover {
+      color: #3b82f6;
+    }
+    #loginInputs {
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+    #loginButtonWrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    /* Register section button container */
+    #registerSection {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    #registerButtons {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    #registerButtons button,
+    #registerButtons span.btn {
+      width: 100%;
+      max-width: 280px;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    /* Admin and Member dashboard fix: separate logout and heading */
+    #mainHeadSection > h2,
+    #adminSection > h2,
+    #memberSection > h2 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      clear: both;
+    }
+  </style>
+</head>
+<body>
+  <header>Decision Desk</header>
+  <main>
+    <!-- Removed Home Section as requested -->
+
+    <!-- Login -->
+    <section id="loginSection">
+      <h2 id="loginTitle">Login</h2>
+      <div id="loginInputs">
+        <input type="text" id="loginUser" placeholder="Enter username" autocomplete="username" />
+        <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password" />
+        <select id="loginRole" style="display:none;">
+          <option value="" disabled selected>Login as</option>
+          <option value="admin">Admin</option>
+          <option value="member">Member</option>
+        </select>
+      </div>
+      <div id="loginButtonWrapper">
+        <button class="btn" onclick="login()">Login</button>
+      </div>
+      <p id="loginError"></p>
+      <p>Don't have an account? <span onclick="showRegister()">Register</span></p>
+    </section>
+
+    <!-- Register Section -->
+    <section id="registerSection">
+      <h2>Register</h2>
+      <input type="text" id="registerUser" placeholder="Choose username" autocomplete="username" />
+      <input type="password" id="registerPass" placeholder="Choose password" autocomplete="new-password" />
+      <select id="registerType">
+        <option value="member">Member</option>
+        <option value="admin">Admin</option>
+      </select>
+      <div id="registerButtons">
+        <button class="btn" onclick="registerUser()">Register</button>
+        <span class="btn" onclick="showLogin()">Back to Login</span>
+      </div>
+      <p id="registerError" style="color:#f87171;"></p>
+    </section>
+
+    <!-- Main Head Admin Dashboard -->
+    <section id="mainHeadSection" style="display:none;">
+      <button class="logout-btn" onclick="logout()">Logout</button>
+      <h2>Welcome Main Head Admin (sahithi)</h2>
+      <div>
+        <h3>Create Clubs</h3>
+        <input type="text" id="newGroupName" placeholder="Enter club name" />
+        <button class="btn" onclick="createGroup()">Create Club</button>
+        <div id="groupsArea"></div>
+      </div>
+      <div>
+        <h3>Add Members</h3>
+        <input type="text" id="newMemberName" placeholder="Enter member username" />
+        <select id="newMemberClub"><option disabled selected>Select club</option></select>
+        <button class="btn" onclick="addMember()">Add Member</button>
+        <div id="membersArea"></div>
+      </div>    
+      <div id="pendingAdminsList" style="display:none;">
+        <h3>Pending Admin Approvals</h3>
+        <div id="pendingAdminsContainer"></div>
+        <p id="noPendingAdmins" style="text-align:center; color:#991b1b; font-weight:600; display:none;">No pending admin registrations.</p>
+      </div>
+    </section>
+
+    <!-- Other Admin Dashboard -->
+    <section id="adminSection" style="display:none;">
+      <button class="logout-btn" onclick="logout()">Logout</button>
+      <h2>Welcome Admin</h2>
+      <input type="text" id="pollQuestion" placeholder="Poll question" />
+      <textarea id="pollDescription" placeholder="Enter poll description (optional)"></textarea>
+      <input type="text" id="pollOptions" placeholder="Option1, Option2" />
+      <select id="clubSelect"></select>
+      <button class="btn" onclick="createPoll()" style="margin-top: 1rem;">Post Poll</button>
+      <h2>Your Polls</h2>
+      <div id="adminPollsList"></div>
+    </section>
+
+    <!-- Member Dashboard -->
+    <section id="memberSection" style="display:none;">
+      <button class="logout-btn" onclick="logout()">Logout</button>
+      <h2>Welcome Member</h2>
+      <div id="memberPollsContainer"></div>
+    </section>
+  </main>
+
+<script>
+  // In-memory data only (no localStorage)
+  let storedUsers = {
+    mainhead: { sahithi: 'sahithi12345' },
+    admin: {},
+    member: {}
+  };
+  let memberClubs = {};
+  let clubs = [];
+  let polls = [];
+
+  // New structure for admin registration approval
+  // Store pending admin registrations: username -> password
+  let pendingAdminRegistrations = {};
+
+  let loginType = null, currentUser = null, currentAdminCharts = {};
+
+  const loginSection = document.getElementById('loginSection');
+  const registerSection = document.getElementById('registerSection');
+  const mainHeadSection = document.getElementById('mainHeadSection');
+  const adminSection = document.getElementById('adminSection');
+  const memberSection = document.getElementById('memberSection');
+  const loginUserEl = document.getElementById('loginUser');
+  const loginPassEl = document.getElementById('loginPass');
+  const loginErrorEl = document.getElementById('loginError');
+  const loginRoleEl = document.getElementById('loginRole');
+  const newMemberNameEl = document.getElementById('newMemberName');
+  const newMemberClubEl = document.getElementById('newMemberClub');
+  const newGroupNameEl = document.getElementById('newGroupName');
+  const groupsArea = document.getElementById('groupsArea');
+  const membersArea = document.getElementById('membersArea');
+  const pollQuestionEl = document.getElementById('pollQuestion');
+  const pollDescriptionEl = document.getElementById('pollDescription');
+  const pollOptionsEl = document.getElementById('pollOptions');
+  const clubSelectEl = document.getElementById('clubSelect'); 
+  const adminPollsList = document.getElementById('adminPollsList');
+  const memberPollsContainer = document.getElementById('memberPollsContainer');
+  const pendingAdminsList = document.getElementById('pendingAdminsList');
+  const pendingAdminsContainer = document.getElementById('pendingAdminsContainer');
+  const noPendingAdmins = document.getElementById('noPendingAdmins');
+
+  function hideAll() {
+    loginSection.style.display =
+    registerSection.style.display =
+    mainHeadSection.style.display =
+    adminSection.style.display =
+    memberSection.style.display = 'none';
+  }
+
+  function showLogin() {
+    hideAll();
+    loginSection.style.display = 'flex';
+    loginErrorEl.textContent = '';
+    loginUserEl.value = '';
+    loginPassEl.value = '';
+    loginRoleEl.value = '';
+    loginRoleEl.style.display = 'block';
+  }
+
+  function showRegister() {
+    hideAll();
+    registerSection.style.display = 'flex';
+    document.getElementById('registerError').textContent = '';
+    document.getElementById('registerUser').value = '';
+    document.getElementById('registerPass').value = '';
+    document.getElementById('registerType').value = 'member';
+  }
+
+  function registerUser() {
+    const username = document.getElementById('registerUser').value.trim().toLowerCase();
+    const password = document.getElementById('registerPass').value.trim();
+    const type = document.getElementById('registerType').value;
+    const errorEl = document.getElementById('registerError');
+
+    if (!username || !password) {
+      errorEl.textContent = "Fill all fields";
+      return;
+    }
+    if (storedUsers.mainhead[username] || storedUsers.admin[username] || storedUsers.member[username] || pendingAdminRegistrations[username]) {
+      errorEl.textContent = "User already exists or pending approval";
+      return;
+    }
+
+    if (type === 'admin') {
+      // Add to pending approval list
+      pendingAdminRegistrations[username] = password;
+      alert("Admin registration submitted for approval by Main Head Admin.");
+      showLogin();
+    } else {
+      storedUsers[type][username] = password;
+      alert("Registered successfully! You can now login.");
+      showLogin();
+    }
+  }
+  
+  function login() {
+    const username = loginUserEl.value.trim().toLowerCase();
+    const password = loginPassEl.value.trim();
+
+    // If trying main head admin fixed credentials, bypass role selection
+    if (username === 'sahithi' && password === 'sahithi12345') {
+      loginType = 'mainhead';
+      currentUser = username;
+      hideAll();
+      mainHeadSection.style.display = 'block';
+      loginRoleEl.style.display = 'none';
+      renderClubsAndMembers();
+      renderPendingAdmins();
+      return;
+    }
+
+    // For other users, role is required and must be validated
+    const role = loginRoleEl.value;
+    if (!role) {
+      loginErrorEl.textContent = 'Please select login role.';
+      return;
+    }
+
+    if (role === 'admin') {
+      if (storedUsers.admin[username] === password) {
+        loginType = 'admin';
+        currentUser = username;
+        hideAll();
+        adminSection.style.display = 'block';
+        loginRoleEl.style.display = 'block';
+        refreshClubSelectOptions();
+        renderAdminPolls();
+        return;
+      }
+      if (pendingAdminRegistrations[username]) {
+        loginErrorEl.textContent = "Your admin registration is pending approval by Main Head Admin.";
+        return;
+      }
+      loginErrorEl.textContent = 'Invalid admin login';
+      return;
+    }
+
+    if (role === 'member') {
+      if (storedUsers.member[username] === password) {
+        loginType = 'member';
+        currentUser = username;
+        hideAll(); 
+        memberSection.style.display = 'block';
+        loginRoleEl.style.display = 'block';
+        renderMemberPolls();
+        return;
+      }
+      loginErrorEl.textContent = 'Invalid member login';
+      return;
+    }
+
+    loginErrorEl.textContent = 'Invalid login';
+  }
+
+  function logout() {
+    currentUser = null;
+    loginType = null;
+    for (const chartId in currentAdminCharts) {
+      if (currentAdminCharts[chartId]) {
+        currentAdminCharts[chartId].destroy();
+      }
+    }
+    currentAdminCharts = {};
+    loginRoleEl.style.display = 'block';
+    showLogin();
+  }
+
+  function createGroup() {
+    const club = newGroupNameEl.value.trim();
+    if (!club) return alert('Enter club name');
+    if (clubs.includes(club)) return alert('Club already exists');
+    clubs.push(club);
+    renderClubsAndMembers();
+    newGroupNameEl.value = '';
+  }
+
+  function addMember() {
+    const username = newMemberNameEl.value.trim().toLowerCase();
+    const club = newMemberClubEl.value;
+    if (!username || !club) return alert('Enter member and select club');
+    if (storedUsers.member[username] || storedUsers.admin[username] || storedUsers.mainhead[username]) return alert('User exists');
+
+    storedUsers.member[username] = '';
+    memberClubs[username] = club;
+    renderClubsAndMembers();
+        
+    if (loginType === 'member' && currentUser === username) {
+      renderMemberPolls();
+    }
+
+    newMemberNameEl.value = '';
+    newMemberClubEl.value = '';
+  }
+
+  function updateMemberClub(username, newClub) {
+    memberClubs[username] = newClub;
+    renderClubsAndMembers();
+    if (loginType === 'member' && currentUser === username) {
+      renderMemberPolls();
+    }
+  }
+
+  function renderClubsAndMembers() {
+    groupsArea.innerHTML = clubs.length
+      ? clubs.map(c => `<div>${c}</div>`).join('')
+      : 'No clubs created yet.';
+
+    newMemberClubEl.innerHTML = '<option disabled selected>Select club</option>' + clubs.map(c => `<option>${c}</option>`).join('');
+
+    if (Object.keys(storedUsers.member).length === 0) {
+      membersArea.innerHTML = 'No members added yet.';
+      return;
+    }
+
+    membersArea.innerHTML = Object.keys(storedUsers.member).map(u => {
+      const assignedClub = memberClubs[u] || '';
+      let optionsHtml = `<option value="">No club</option>`;
+      optionsHtml += clubs.map(c => `<option value="${c}"${c === assignedClub ? ' selected' : ''}>${c}</option>`).join('');
+      return `<div>
+        <span>${u}</span>
+        <select onchange="updateMemberClub('${u}', this.value)">
+          ${optionsHtml}
+        </select>
+      </div>`;
+    }).join('');
+    refreshClubSelectOptions();
+  }
+
+  function refreshClubSelectOptions() {
+    clubSelectEl.innerHTML = '<option value="all">All Members</option>' + clubs.map(c =>`<option>${c}</option>`).join('');
+  }
+
+  function createPoll() {
+    const question = pollQuestionEl.value.trim();
+    const description = pollDescriptionEl.value.trim();
+    const options = pollOptionsEl.value.split(',').map(o => o.trim()).filter(Boolean);
+    const club = clubSelectEl.value;
+    if (!question) return alert('Enter poll question');
+    if (options.length < 2) return alert('Enter at least two options separated by commas');
+    if (!club) return alert('Select a club or All Members');
+
+    const targetMembers = club === 'all'
+      ? Object.keys(storedUsers.member).map(u => u.toLowerCase())
+      : Object.entries(memberClubs)
+          .filter(([username, c]) => c === club)
+          .map(([username]) => username.toLowerCase());
+
+    if (targetMembers.length === 0) {
+      alert('No members in the selected club to receive the poll.');
+      return;
+    }
+
+    const poll = {
+      id: Date.now(),
+      question,
+      description,
+      options,
+      votes: Array(options.length).fill(0),
+      votedMembers: [],
+      targetMembers,
+      creator: currentUser
+    };
+    polls.push(poll);
+
+    renderAdminPolls();
+
+    pollQuestionEl.value = '';
+    pollDescriptionEl.value = '';
+    pollOptionsEl.value = '';
+  }
+
+  function renderAdminPolls() {
+    adminPollsList.innerHTML = '';
+    if (polls.length === 0) {
+      adminPollsList.innerHTML = 'No polls posted yet.';
+      return;
+    }
+
+    const myPolls = polls.filter(p => p.creator === currentUser);
+    if (myPolls.length === 0) {
+      adminPollsList.innerHTML = 'You have not created any polls yet.';
+      return;
+    }
+
+    for (const chartId in currentAdminCharts) {
+      if (currentAdminCharts[chartId]) {
+        currentAdminCharts[chartId].destroy();
+      }
+    }
+    currentAdminCharts = {};
+
+    myPolls.forEach(poll => {
+      const totalVotes = poll.votes.reduce((a, b) => a + b, 0);
+      const pollDiv = document.createElement('div');
+      pollDiv.className = 'admin-poll';
+
+      const questionH3 = document.createElement('h3');
+      questionH3.textContent = poll.question;
+      pollDiv.appendChild(questionH3);
+
+      if (poll.description) {
+        const descP = document.createElement('p');
+        descP.className = 'poll-description';
+        descP.textContent = poll.description;
+        pollDiv.appendChild(descP);
+      }
+
+      const votesCount = document.createElement('div');
+      votesCount.className = 'votes-count';
+      votesCount.textContent = `Total Votes: ${totalVotes}`;
+      pollDiv.appendChild(votesCount);
+
+      const canvas = document.createElement('canvas');
+      canvas.id = `chart-${poll.id}`;
+      pollDiv.appendChild(canvas);
+
+      adminPollsList.appendChild(pollDiv);
+      // pie chart
+      const ctx = canvas.getContext('2d');
+      const colors = generateColors(poll.options.length);
+      const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: poll.options,
+          datasets: [{
+            data: poll.votes,
+            backgroundColor: colors,
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            hoverOffset: 30
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 14 }, padding: 20 } },
+            tooltip: { enabled: true, callbacks: {
+              label: function(context) {
+                const label = context.label ||  '';
+                const value = context.parsed || 0;
+                const total = context.dataset.data.reduce((a,b) => a+b, 0);
+                const percentage = total ? ((value / total) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }}
+          }
+        }
+      });
+      currentAdminCharts[poll.id] = chart;
+    });
+  }
+  function generateColors(num) {
+    const baseColors = [
+      '#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899',
+      '#14b8a6', '#f97316', '#6366f1', '#db2777', '#22d3ee', '#eab308'
+    ];
+    if (num <= baseColors.length) return baseColors.slice(0, num);
+    const colors = [];
+    for (let i = 0; i < num; i++) {
+      colors.push(`hsl(${(i * 360 / num) % 360}, 70%, 65%)`);
+    }
+    return colors;
+  }
+  function renderMemberPolls() {
+    if (!currentUser) {
+      memberPollsContainer.innerHTML = 'Please login as a member to see polls.';
+      return;
+    }
+    const availablePolls = polls.filter(p => p.targetMembers.includes(currentUser.toLowerCase()));
+    if (availablePolls.length === 0) {
+      memberPollsContainer.innerHTML = 'No polls available for your club yet.';
+      return;
+    }
+    memberPollsContainer.innerHTML = availablePolls.map(poll => {
+      const voted = poll.votedMembers.includes(currentUser.toLowerCase());
+      return `
+        <div class="member-poll">
+          <h3>${poll.question}</h3>
+          ${poll.description ?`<p class="member-poll-description">${poll.description}</p>`: ''}
+          <div class="member-poll-options">
+            ${poll.options.map((opt, i) => `
+              <button
+                ${voted ? 'disabled' : ''}
+                onclick="vote(${poll.id},${i})"
+              >${opt}</button>`).join('')}
+          </div>
+          ${voted ?`<p class="voted-message">You have voted. Thank you!</p>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+  function vote(pollId, optionIndex) {
+    const poll = polls.find(p => p.id === pollId);
+    if (!poll) return alert('Poll not found.');
+    if (poll.votedMembers.includes(currentUser.toLowerCase())) return alert('You have already voted.');
+    poll.votes[optionIndex]++;
+    poll.votedMembers.push(currentUser.toLowerCase());
+    renderMemberPolls();
+    renderAdminPolls(); // Update admin charts live if admin is logged in
+  }
+  // --- New functions for main head admin to manage pending admin approvals ---
+  function renderPendingAdmins() {
+    const pendingUsernames = Object.keys(pendingAdminRegistrations);
+    if (pendingUsernames.length === 0) {
+      pendingAdminsContainer.innerHTML = '';
+      noPendingAdmins.style.display = 'block';
+      pendingAdminsList.style.display = 'none';
+      return;
+    }
+    noPendingAdmins.style.display = 'none';
+    pendingAdminsList.style.display = 'block';
+    pendingAdminsContainer.innerHTML = pendingUsernames.map(username => `
+      <div class="pending-admin-item">
+        <span>${username}</span>
+        <button onclick="approveAdmin('${username}')">Approve</button>
+      </div>
+    `).join('');
+  }
+  function approveAdmin(username) {
+    if (!pendingAdminRegistrations[username]) return;
+    // Move from pending to approved admins
+    storedUsers.admin[username] = pendingAdminRegistrations[username];
+    delete pendingAdminRegistrations[username];
+    alert(`Admin "${username}" has been approved.`);
+    renderPendingAdmins();
+  }
+  // Initialize display
+  showLogin();
+</script>
+</body>
+</html>
